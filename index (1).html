@@ -3,9 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>格柵放樣台</title>
+<title>一字型格柵 · 格柵放樣台</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+TC:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
   :root{
     --blueprint:#0F2540;
@@ -18,6 +19,8 @@
     --ink:#16212B;
     --ink-soft:#5B6975;
     --metal:#9AA6AF;
+    --metal-line:#3E4A52;
+    font-size:16px;
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;background:var(--paper);color:var(--ink);
@@ -26,145 +29,661 @@
 
   header{
     background:var(--blueprint);color:var(--linework);
-    padding:36px 28px 32px;
+    padding:22px 28px 20px;
     border-bottom:3px solid var(--accent);
   }
-  header h1{margin:0;font-size:1.9rem;font-weight:700;letter-spacing:.02em;}
-  header p{margin:8px 0 0;font-size:.92rem;color:#9FB6CE;max-width:560px;line-height:1.6;}
+  header h1{margin:0;font-size:1.5rem;font-weight:700;letter-spacing:.02em;}
+  header p{margin:4px 0 0;font-size:.85rem;color:#9FB6CE;}
+  header a:hover{color:#fff !important;}
 
-  main{max-width:1080px;margin:0 auto;padding:36px 28px 60px;}
-
-  h2.section-title{
-    font-size:.95rem;font-weight:600;margin:0 0 16px;
-    color:var(--blueprint);text-transform:none;
-  }
-
-  .grid{
+  .layout{
     display:grid;
-    grid-template-columns:repeat(auto-fill, minmax(260px, 1fr));
-    margin:0 0 40px;
+    grid-template-columns:340px 1fr;
+    gap:0;
+    min-height:calc(100vh - 90px);
   }
-  .card{
+  @media (max-width:880px){
+    .layout{grid-template-columns:1fr;}
+  }
+
+  aside{
+    background:#EFEBE0;
+    border-right:1px solid var(--paper-line);
+    padding:20px;
+    overflow-y:auto;
+  }
+  main{padding:24px 28px 40px;min-width:0;}
+
+  .field-group{
     position:relative;
     border:1px solid var(--paper-line);
-    background:#FBFAF6;
-    padding:22px 20px 20px;
-    margin:0 16px 16px 0;
     border-radius:2px;
-    display:flex;flex-direction:column;
-    min-height:190px;
-    transition:border-color .15s ease;
+    padding:16px 14px 14px;
+    margin-bottom:18px;
+    background:#FBFAF6;
   }
-  .card.active{cursor:pointer;}
-  .card.active:hover{border-color:var(--accent);}
-  .card.disabled{opacity:.55;}
+  .field-group > .fg-label{
+    position:absolute;top:-10px;left:10px;background:#FBFAF6;
+    padding:0 6px;font-size:.78rem;font-weight:600;color:var(--blueprint);
+  }
+  .field-group .fg-corner{
+    position:absolute;width:8px;height:8px;border-color:var(--paper-line);
+  }
 
-  .card .icon{
-    width:44px;height:44px;margin-bottom:14px;
-    display:flex;align-items:center;justify-content:center;
+  label.f{display:block;font-size:.76rem;color:var(--ink-soft);margin:10px 0 4px;}
+  label.f:first-child{margin-top:0;}
+  input[type=text],input[type=number],select{
+    width:100%;padding:7px 8px;border:1px solid var(--paper-line);
+    border-radius:2px;background:#fff;color:var(--ink);
+    font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:.9rem;
   }
-  .card h3{margin:0 0 6px;font-size:1.1rem;font-weight:600;color:var(--ink);}
-  .card p{margin:0;font-size:.82rem;color:var(--ink-soft);line-height:1.6;flex-grow:1;}
-  .card .tag{
-    display:inline-block;font-size:.68rem;color:var(--accent);
-    border:1px solid var(--accent);border-radius:2px;
-    padding:2px 8px;margin-bottom:10px;align-self:flex-start;
+  input[type=text]:focus,input[type=number]:focus,select:focus{
+    outline:2px solid var(--accent);outline-offset:1px;
+  }
+  select{font-family:'IBM Plex Sans TC',sans-serif;}
+
+  .radio-row{display:flex;flex-wrap:wrap;margin-top:6px;}
+  .radio-row label{
+    display:flex;align-items:center;font-size:.82rem;
+    padding:5px 9px;border:1px solid var(--paper-line);border-radius:2px;
+    cursor:pointer;background:#fff;margin:0 8px 8px 0;
+  }
+  .radio-row label input{margin:0 5px 0 0;}
+  .radio-row label.active{border-color:var(--accent);background:#FCEEE6;}
+
+  table.floors{width:100%;border-collapse:collapse;font-size:.85rem;margin-top:6px;}
+  table.floors th{
+    text-align:left;font-weight:500;color:var(--ink-soft);
+    font-size:.72rem;padding:4px 4px;border-bottom:1px solid var(--paper-line);
+  }
+  table.floors td{padding:3px 4px;border-bottom:1px solid #ECE7D9;}
+  table.floors input{padding:4px 6px;font-size:.85rem;}
+  table.floors td.wcol input{text-align:right;}
+  .row-del{
+    background:none;border:none;color:#B44;cursor:pointer;font-size:1rem;
+    line-height:1;padding:2px 6px;
+  }
+  .row-del:hover{color:var(--accent);}
+  .add-row-btn{
+    margin-top:8px;width:100%;padding:7px;border:1px dashed var(--paper-line);
+    background:none;color:var(--blueprint);border-radius:2px;cursor:pointer;
+    font-size:.82rem;
+  }
+  .add-row-btn:hover{border-color:var(--accent);color:var(--accent);}
+
+  .note{font-size:.72rem;color:var(--ink-soft);margin-top:8px;line-height:1.5;}
+
+  .floor-tabs{display:flex;flex-wrap:wrap;margin-bottom:14px;}
+  .floor-tabs button{
+    padding:6px 14px;border:1px solid var(--paper-line);background:#fff;
+    border-radius:2px;cursor:pointer;font-family:'IBM Plex Mono',monospace;
+    font-size:.85rem;color:var(--ink);margin:0 6px 6px 0;
+  }
+  .floor-tabs button.active{
+    background:var(--blueprint);border-color:var(--blueprint);color:#fff;
+  }
+
+  .canvas-wrap{
+    background:var(--blueprint);border:1px solid var(--blueprint-2);
+    border-radius:2px;padding:10px;overflow-x:auto;
+  }
+  .canvas-wrap svg{display:block;}
+
+  .stat-row{display:flex;flex-wrap:wrap;margin:16px 0 22px;}
+  .stat{font-size:.78rem;color:var(--ink-soft);margin:0 22px 10px 0;}
+  .stat b{display:block;font-size:1.15rem;color:var(--ink);font-family:'IBM Plex Mono',monospace;font-weight:600;}
+
+  h2.section-title{
+    font-size:.95rem;font-weight:600;margin:28px 0 10px;
+    border-bottom:1px solid var(--paper-line);padding-bottom:6px;color:var(--blueprint);
+  }
+
+  table.results{width:100%;border-collapse:collapse;font-size:.85rem;}
+  table.results th{
+    text-align:right;font-weight:500;color:var(--ink-soft);font-size:.74rem;
+    padding:6px 8px;border-bottom:2px solid var(--ink);
+  }
+  table.results th:first-child,table.results td:first-child{text-align:left;}
+  table.results td{
+    text-align:right;padding:6px 8px;border-bottom:1px solid var(--paper-line);
     font-family:'IBM Plex Mono',monospace;
   }
-  .card .tag.soon{color:var(--ink-soft);border-color:var(--paper-line);}
-  .card .open-link{
-    margin-top:14px;font-size:.82rem;font-weight:600;color:var(--blueprint);
-    text-decoration:none;
-  }
-  .card.active:hover .open-link{color:var(--accent);}
-  .card a.card-link{position:absolute;inset:0;}
+  table.results tr:hover td{background:#F0ECE0;}
 
-  .note-box{
-    border:1px dashed var(--paper-line);border-radius:2px;
-    padding:16px 18px;font-size:.8rem;color:var(--ink-soft);line-height:1.7;
-    background:#FBFAF6;
+  .export-row{display:flex;flex-wrap:wrap;margin-top:26px;}
+  button.primary,button.secondary{
+    padding:11px 20px;border-radius:2px;font-size:.9rem;cursor:pointer;
+    font-family:'IBM Plex Sans TC',sans-serif;font-weight:600;margin:0 12px 12px 0;
   }
-  .note-box b{color:var(--ink);}
-  .note-box code{
-    background:#EFEBE0;padding:1px 6px;border-radius:2px;
-    font-family:'IBM Plex Mono',monospace;font-size:.78rem;color:var(--blueprint);
-  }
+  button.primary{background:var(--accent);border:1px solid var(--accent);color:#fff;}
+  button.primary:hover{background:var(--accent-dim);}
+  button.secondary{background:#fff;border:1px solid var(--blueprint);color:var(--blueprint);}
+  button.secondary:hover{background:#E8EEF4;}
+
+  .legend{display:flex;flex-wrap:wrap;font-size:.74rem;color:var(--ink-soft);margin-top:10px;}
+  .legend span{display:inline-flex;align-items:center;margin:0 16px 6px 0;}
+  .legend span .swatch{margin-right:5px;}
+  .swatch{width:10px;height:10px;display:inline-block;border-radius:1px;}
 </style>
 </head>
 <body>
 
 <header>
-  <h1>格柵放樣台</h1>
-  <p>依格柵類型選擇對應工具,調整參數即時預覽,下載可直接開啟於 AutoCAD 的 DXF 圖檔。</p>
+  <a href="index.html" style="color:#9FB6CE;text-decoration:none;font-size:.82rem;display:inline-block;margin-bottom:8px;">&larr; 返回總覽</a>
+  <h1>一字型格柵</h1>
+  <p>調整參數即時預覽百葉配置,確認後直接下載可開啟於 AutoCAD 的 DXF 檔</p>
 </header>
 
-<main>
-  <h2 class="section-title">選擇格柵類型</h2>
-  <div class="grid" id="toolGrid"></div>
+<div class="layout">
+  <aside>
 
-  <h2 class="section-title">關於這個總頁面</h2>
-  <div class="note-box">
-    每種格柵類型(一字型、冷氣、L型…)因為參數邏輯不同,各自用獨立頁面維護,避免互相干擾。<br><br>
-    <b>之後新增新類型時</b>:先建好那個類型的工具頁面(例如 <code>冷氣格柵.html</code>),
-    再回來這個檔案裡的 <code>TOOLS</code> 清單加一筆資料,卡片就會自動顯示出來,不需要更動其他地方。
-  </div>
-</main>
+    <div class="field-group">
+      <span class="fg-label">案名</span>
+      <label class="f">名稱(僅畫面顯示用)</label>
+      <input type="text" id="projectName" value="一字型格柵">
+      <label class="f">圖面代碼(英數字,會顯示在CAD圖面文字)</label>
+      <input type="text" id="projectCode" value="STR-GRILLE">
+      <p class="note">DXF圖檔內文字僅支援英數字,案名的中文不會出現在CAD圖面文字裡,但不影響圖形本身,所以另外用「圖面代碼」標示。</p>
+    </div>
+
+    <div class="field-group">
+      <span class="fg-label">樓層清單</span>
+      <table class="floors" id="floorTable">
+        <thead><tr><th>樓層</th><th>寬度 W (mm)</th><th></th></tr></thead>
+        <tbody id="floorTbody"></tbody>
+      </table>
+      <button class="add-row-btn" id="addFloorBtn">+ 新增樓層</button>
+    </div>
+
+    <div class="field-group">
+      <span class="fg-label">格柵尺寸</span>
+      <label class="f">高度 L (mm)</label>
+      <input type="number" id="paramL" value="900" min="50" step="1">
+
+      <label class="f">鋁擠型斷面高度 (mm)</label>
+      <input type="number" id="paramBladeH" value="30" min="1" step="1">
+
+      <label class="f">鋁擠型斷面深度 (mm)</label>
+      <input type="number" id="paramBladeD" value="60" min="1" step="1">
+
+      <label class="f">百葉淨間隙 (mm)</label>
+      <input type="number" id="paramGap" value="80" min="0" step="1">
+    </div>
+
+    <div class="field-group">
+      <span class="fg-label">排列方式</span>
+      <label class="f">對齊基準</label>
+      <div class="radio-row" id="alignRow">
+        <label><input type="radio" name="align" value="top" checked>頂部齊平</label>
+        <label><input type="radio" name="align" value="bottom">底部齊平</label>
+        <label><input type="radio" name="align" value="center">置中對稱</label>
+      </div>
+      <p class="note">「頂部齊平」代表第一片百葉頂端貼齊整體高度L,剩餘空間全部留在最下方。</p>
+
+    <div class="field-group">
+      <span class="fg-label">背檔</span>
+      <label class="f"><input type="checkbox" id="autoBacker" checked style="width:auto;margin-right:6px;">依寬度自動加背檔</label>
+
+      <label class="f">自動門檻:寬度每超過幾mm加一支 (mm)</label>
+      <input type="number" id="backerThreshold" value="1000" min="1" step="10">
+
+      <label class="f">手動背檔數量(取消勾選自動時生效)</label>
+      <input type="number" id="backerManual" value="2" min="0" step="1">
+
+      <p class="note">例如門檻設1000mm,寬度3800mm的格柵會自動加3支背檔(每滿1000mm一支)。實際位置僅供參考,依現場材料強度與跨距調整。</p>
+    </div>
+
+    <div class="legend">
+      <span><span class="swatch" style="background:#9AA6AF"></span>百葉 BLADE</span>
+      <span><span class="swatch" style="background:#D9622B"></span>間隙 GAP</span>
+      <span><span class="swatch" style="background:#7B5EA7"></span>收邊 MARGIN</span>
+      <span><span class="swatch" style="background:#5D7A99"></span>背檔位置參考線</span>
+    </div>
+
+  </aside>
+
+  <main>
+    <div class="floor-tabs" id="floorTabs"></div>
+
+    <div class="canvas-wrap">
+      <div id="svgHost"></div>
+    </div>
+
+    <div class="stat-row" id="statRow"></div>
+
+    <h2 class="section-title">各樓層計算結果</h2>
+    <table class="results" id="resultsTable">
+      <thead>
+        <tr>
+          <th>樓層</th><th>W (mm)</th><th>百葉數</th><th>百葉高</th>
+          <th>淨間隙</th><th>頂收邊</th><th>底收邊</th><th>背檔數</th>
+        </tr>
+      </thead>
+      <tbody id="resultsTbody"></tbody>
+    </table>
+
+    <div class="export-row">
+      <button class="primary" id="downloadOneBtn">下載目前樓層 DXF</button>
+      <button class="secondary" id="downloadAllBtn">下載全部樓層(ZIP)</button>
+    </div>
+  </main>
+</div>
 
 <script>
-// ============================================================
-// 工具清單: 之後新增格柵類型時,只要在這裡多加一筆資料就好
-// status: "active" = 已完成可以點進去用 / "soon" = 尚未建立,顯示為預告卡片
-// ============================================================
-const TOOLS = [
-  {
-    name: "一字型格柵",
-    file: "一字型格柵.html",
-    desc: "直線型鋁擠型百葉格柵,支援自動背檔(依寬度超過門檻自動加支撐)、頂/底/置中對齊。",
-    status: "active",
-  },
-  {
-    name: "ㄇ字型格柵",
-    file: "ㄇ字型格柵.html",
-    desc: "三面U型框格柵,尚未建立。",
-    status: "soon",
-  },
-  {
-    name: "L型格柵",
-    file: "L型格柵.html",
-    desc: "轉角L型格柵,尚未建立。",
-    status: "soon",
-  },
-];
+/* ============================================================
+   CORE: 百葉配置計算 + 場景建構 (與 Node 測試版邏輯相同)
+   ============================================================ */
+function computeLayout(L, bladeH, gap, align) {
+  const pitch = bladeH + gap;
+  let n = Math.floor((L + gap) / pitch);
+  if (n < 1) n = 1;
+  const used = n * bladeH + Math.max(n - 1, 0) * gap;
+  const remain = Math.max(L - used, 0);
+  let marginTop, marginBottom;
+  if (align === "top") { marginTop = 0; marginBottom = remain; }
+  else if (align === "bottom") { marginTop = remain; marginBottom = 0; }
+  else { marginTop = remain / 2; marginBottom = remain / 2; }
 
-function iconSvg() {
-  // 簡單的百葉線條icon,呼應blueprint風格
-  return `<svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect x="2" y="2" width="40" height="40" stroke="#9AA6AF" stroke-width="1.4"/>
-    <line x1="6" y1="12" x2="38" y2="12" stroke="#0F2540" stroke-width="2.4"/>
-    <line x1="6" y1="19" x2="38" y2="19" stroke="#0F2540" stroke-width="2.4"/>
-    <line x1="6" y1="26" x2="38" y2="26" stroke="#0F2540" stroke-width="2.4"/>
-    <line x1="6" y1="33" x2="38" y2="33" stroke="#0F2540" stroke-width="2.4"/>
-  </svg>`;
+  const bladeBottoms = [];
+  for (let i = 0; i < n; i++) {
+    const topOfThisBlade = L - marginTop - i * pitch;
+    bladeBottoms.push(topOfThisBlade - bladeH);
+  }
+  bladeBottoms.sort((a, b) => a - b);
+  return { n, used, remain, marginTop, marginBottom, bladeBottoms, pitch, gap, bladeH };
 }
 
-function render() {
-  const grid = document.getElementById("toolGrid");
-  let html = "";
-  TOOLS.forEach(t => {
-    const isActive = t.status === "active";
-    html += `<div class="card ${isActive ? "active" : "disabled"}">`;
-    if (isActive) html += `<a class="card-link" href="${t.file}" aria-label="開啟${t.name}"></a>`;
-    html += `<span class="tag ${isActive ? "" : "soon"}">${isActive ? "可使用" : "尚未建立"}</span>`;
-    html += `<div class="icon">${iconSvg()}</div>`;
-    html += `<h3>${t.name}</h3>`;
-    html += `<p>${t.desc}</p>`;
-    if (isActive) html += `<span class="open-link">開啟工具 &rarr;</span>`;
-    html += `</div>`;
+function toDxfSafe(str) {
+  const cleaned = String(str).replace(/[^\x00-\x7F]/g, "").trim();
+  return cleaned || "NA";
+}
+
+function buildGrilleScene(p, floor) {
+  const W = floor.W, L = p.L;
+  const layout = computeLayout(L, p.bladeH, p.gap, p.align);
+  const lines = [], texts = [], rects = [];
+
+  const addRect = (x1, y1, x2, y2, layer, fillable) => {
+    lines.push({ x1, y1, x2, y2: y1, layer });
+    lines.push({ x1: x2, y1, x2, y2, layer });
+    lines.push({ x1: x2, y1: y2, x2: x1, y2, layer });
+    lines.push({ x1, y1: y2, x2: x1, y2: y1, layer });
+    if (fillable) rects.push({ x1, y1, x2, y2, layer });
+  };
+
+  addRect(0, 0, W, L, "FRAME");
+  for (const yb of layout.bladeBottoms) addRect(0, yb, W, yb + p.bladeH, "LOUVER", true);
+
+  const supN = Math.max(calcBackerCount(W, p), 0);
+  for (let i = 1; i <= supN; i++) {
+    const x = (W * i) / (supN + 1);
+    lines.push({ x1: x, y1: 0, x2: x, y2: L, layer: "NOTE" });
+  }
+
+  const dimH = (x1, x2, y, text, layer, offset, textH) => {
+    const yy = y + offset;
+    lines.push({ x1, y1: y, x2: x1, y2: yy, layer });
+    lines.push({ x1: x2, y1: y, x2: x2, y2: yy, layer });
+    lines.push({ x1, y1: yy, x2, y2: yy, layer });
+    texts.push({ x: (x1 + x2) / 2, y: yy + textH * 0.4, text, height: textH, layer, rotation: 0, anchor: "middle" });
+  };
+  const dimV = (y1, y2, x, text, layer, offset, textH) => {
+    const xx = x + offset;
+    lines.push({ x1: x, y1, x2: xx, y2: y1, layer });
+    lines.push({ x1: x, y1: y2, x2: xx, y2: y2, layer });
+    lines.push({ x1: xx, y1, x2: xx, y2, layer });
+    texts.push({ x: xx + textH * 0.4, y: (y1 + y2) / 2, text, height: textH, layer, rotation: 90, anchor: "middle" });
+  };
+
+  dimH(0, W, 0, `W=${W.toFixed(0)}`, "DIM", -150, 60);
+  dimV(0, L, 0, `L=${L.toFixed(0)}`, "DIM", -150, 60);
+
+  const boundaries = [0];
+  const segLabels = [];
+  let cur = 0;
+  if (layout.marginBottom > 0.01) {
+    cur += layout.marginBottom; boundaries.push(cur);
+    segLabels.push({ type: "MARGIN", len: layout.marginBottom });
+  }
+  for (let i = 0; i < layout.n; i++) {
+    cur += p.bladeH; boundaries.push(cur);
+    segLabels.push({ type: "BLADE", len: p.bladeH });
+    if (i !== layout.n - 1) {
+      cur += p.gap; boundaries.push(cur);
+      segLabels.push({ type: "GAP", len: p.gap });
+    }
+  }
+  if (layout.marginTop > 0.01) {
+    cur += layout.marginTop; boundaries.push(cur);
+    segLabels.push({ type: "MARGIN", len: layout.marginTop });
+  }
+
+  const chainX = W + 550, tick = 25;
+  for (let i = 0; i < segLabels.length; i++) {
+    const y0 = boundaries[i], y1 = boundaries[i + 1];
+    lines.push({ x1: chainX, y1: y0, x2: chainX, y2: y1, layer: "DIM" });
+    lines.push({ x1: chainX - tick, y1: y0, x2: chainX + tick, y2: y0, layer: "DIM" });
+    lines.push({ x1: chainX - tick, y1: y1, x2: chainX + tick, y2: y1, layer: "DIM" });
+    const mid = (y0 + y1) / 2;
+    texts.push({ x: chainX + 40, y: mid, text: `${segLabels[i].len.toFixed(0)}`, height: 40, layer: "DIM", rotation: 0, anchor: "start", segType: segLabels[i].type });
+    lines.push({ x1: W, y1: mid, x2: chainX - tick, y2: mid, layer: "NOTE" });
+  }
+
+  const secX = chainX + 500;
+  addRect(secX - 20, 0, secX + p.bladeD + 20, L, "FRAME");
+  for (const yb of layout.bladeBottoms) addRect(secX, yb, secX + p.bladeD, yb + p.bladeH, "LOUVER", true);
+  dimH(secX, secX + p.bladeD, -100, `${p.bladeD.toFixed(0)}`, "DIM", -100, 40);
+
+  const title = toDxfSafe(`${p.code || "GRILLE"} ELEVATION (${floor.label} ${W.toFixed(0)}mm)`);
+  const spec = toDxfSafe(`ALU ${p.bladeH.toFixed(0)}x${p.bladeD.toFixed(0)}mm GAP ${p.gap.toFixed(0)}mm QTY ${layout.n}pcs ALIGN=${p.align.toUpperCase()} BACKER=${supN}pcs`);
+  texts.push({ x: 0, y: L + 200, text: title, height: 90, layer: "TEXT", rotation: 0, anchor: "start" });
+  texts.push({ x: 0, y: L + 100, text: spec, height: 55, layer: "TEXT", rotation: 0, anchor: "start" });
+
+  let xs = [0, W, secX + p.bladeD + 20], ys = [0, L];
+  for (const ln of lines) { xs.push(ln.x1, ln.x2); ys.push(ln.y1, ln.y2); }
+  for (const t of texts) { xs.push(t.x); ys.push(t.y); }
+
+  return {
+    lines, texts, rects, layout,
+    extents: { minX: Math.min(...xs), maxX: Math.max(...xs), minY: Math.min(...ys), maxY: Math.max(...ys) },
+  };
+}
+
+/* ============================================================
+   DXF EXPORT
+   ============================================================ */
+function sceneToDxf(scene) {
+  const { lines, texts, extents } = scene;
+  const pad = Math.max(extents.maxX - extents.minX, extents.maxY - extents.minY) * 0.05 + 50;
+  const out = [];
+  const push = (s) => out.push(s);
+
+  push("0\nSECTION\n2\nHEADER\n");
+  push("9\n$ACADVER\n1\nAC1009\n");
+  push("9\n$INSUNITS\n70\n4\n");
+  push(`9\n$EXTMIN\n10\n${(extents.minX - pad).toFixed(3)}\n20\n${(extents.minY - pad).toFixed(3)}\n30\n0.0\n`);
+  push(`9\n$EXTMAX\n10\n${(extents.maxX + pad).toFixed(3)}\n20\n${(extents.maxY + pad).toFixed(3)}\n30\n0.0\n`);
+  push(`9\n$LIMMIN\n10\n${(extents.minX - pad).toFixed(3)}\n20\n${(extents.minY - pad).toFixed(3)}\n`);
+  push(`9\n$LIMMAX\n10\n${(extents.maxX + pad).toFixed(3)}\n20\n${(extents.maxY + pad).toFixed(3)}\n`);
+  push("0\nENDSEC\n");
+
+  const layers = [["FRAME",5],["LOUVER",3],["DIM",1],["TEXT",7],["NOTE",2]];
+  push("0\nSECTION\n2\nTABLES\n");
+  push(`0\nTABLE\n2\nLAYER\n70\n${layers.length + 1}\n`);
+  push("0\nLAYER\n2\n0\n70\n0\n62\n7\n6\nCONTINUOUS\n");
+  for (const [name, color] of layers) push(`0\nLAYER\n2\n${name}\n70\n0\n62\n${color}\n6\nCONTINUOUS\n`);
+  push("0\nENDTAB\n0\nENDSEC\n");
+  push("0\nSECTION\n2\nBLOCKS\n0\nENDSEC\n");
+
+  push("0\nSECTION\n2\nENTITIES\n");
+  for (const d of lines) {
+    push(`0\nLINE\n8\n${d.layer}\n10\n${d.x1.toFixed(3)}\n20\n${d.y1.toFixed(3)}\n30\n0.0\n11\n${d.x2.toFixed(3)}\n21\n${d.y2.toFixed(3)}\n31\n0.0\n`);
+  }
+  for (const t of texts) {
+    push(`0\nTEXT\n8\n${t.layer}\n10\n${t.x.toFixed(3)}\n20\n${t.y.toFixed(3)}\n30\n0.0\n40\n${t.height.toFixed(3)}\n1\n${t.text}\n50\n${(t.rotation||0).toFixed(1)}\n`);
+  }
+  push("0\nENDSEC\n0\nEOF\n");
+
+  let content = out.join("").replace(/\n/g, "\r\n");
+  for (let i = 0; i < content.length; i++) {
+    if (content.charCodeAt(i) > 127) {
+      throw new Error("DXF內容含有非ASCII字元,請確認案名/樓層代號僅使用英數字");
+    }
+  }
+  return content;
+}
+
+/* ============================================================
+   SVG RENDER (預覽用,座標系: DXF是Y向上,這裡轉成SVG Y向下)
+   ============================================================ */
+const LAYER_STYLE = {
+  FRAME:  { stroke: "#E8F1FF", width: 3, fill: "none", textFill: "#E8F1FF" },
+  LOUVER: { stroke: "#3E4A52", width: 1.5, fill: "#9AA6AF", textFill: "#9AA6AF" },
+  DIM:    { stroke: "#D9622B", width: 1.2, fill: "none", textFill: "#D9622B" },
+  NOTE:   { stroke: "#5D7A99", width: 1, fill: "none", dash: "10 8", textFill: "#5D7A99" },
+  TEXT:   { stroke: "none", fill: "#E8F1FF", textFill: "#E8F1FF" },
+};
+const SEG_COLOR = { BLADE: "#C7D6DC", GAP: "#F3B991", MARGIN: "#CBB9E6" };
+
+function renderSVG(scene) {
+  const { lines, texts, rects, extents } = scene;
+  const pad = 60;
+  const minX = extents.minX - pad, maxX = extents.maxX + pad;
+  const minY = extents.minY - pad, maxY = extents.maxY + pad;
+  const w = maxX - minX, h = maxY - minY;
+  const flipY = (y) => minY + maxY - y; // Y軸上下翻轉 (DXF Y向上 -> SVG Y向下)
+
+  let svg = `<svg viewBox="${minX} ${minY} ${w} ${h}" width="${Math.min(w, 1400)}" height="${Math.min(w,1400)*h/w}" xmlns="http://www.w3.org/2000/svg" font-family="IBM Plex Mono, monospace">`;
+
+  // 先畫實心矩形(百葉),讓它們看起來是實心鋁條而不是空心框
+  for (const r of rects) {
+    const st = LAYER_STYLE[r.layer] || LAYER_STYLE.LOUVER;
+    const y = flipY(r.y2); // r.y2 > r.y1 在drafting座標, flip後對應SVG的上緣
+    svg += `<rect x="${r.x1}" y="${y}" width="${r.x2 - r.x1}" height="${r.y2 - r.y1}" fill="${st.fill}" fill-opacity="0.9"/>`;
+  }
+
+  for (const d of lines) {
+    const st = LAYER_STYLE[d.layer] || LAYER_STYLE.NOTE;
+    const dash = st.dash ? `stroke-dasharray="${st.dash}"` : "";
+    svg += `<line x1="${d.x1}" y1="${flipY(d.y1)}" x2="${d.x2}" y2="${flipY(d.y2)}" stroke="${st.stroke}" stroke-width="${st.width}" ${dash}/>`;
+  }
+  for (const t of texts) {
+    const st = LAYER_STYLE[t.layer] || LAYER_STYLE.TEXT;
+    const color = t.segType ? SEG_COLOR[t.segType] : st.textFill;
+    const y = flipY(t.y);
+    const transform = t.rotation === 90 ? `transform="rotate(-90 ${t.x} ${y})"` : "";
+    svg += `<text x="${t.x}" y="${y}" font-size="${t.height}" fill="${color}" text-anchor="${t.anchor||'start'}" ${transform}>${escapeXml(t.text)}</text>`;
+  }
+  svg += `</svg>`;
+  return svg;
+}
+
+function escapeXml(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+
+/* ============================================================
+   APP STATE & UI
+   ============================================================ */
+let state = {
+  project: "一字型格柵",
+  code: "STR-GRILLE",
+  floors: [
+    { label: "2F", W: 3770 },
+    { label: "3F", W: 3773 },
+    { label: "4F", W: 3780 },
+    { label: "5F", W: 3797 },
+    { label: "6F", W: 3800 },
+  ],
+  L: 900, bladeH: 30, bladeD: 60, gap: 80, align: "top",
+  autoBacker: true, backerThreshold: 1000, backerManual: 2,
+  activeFloor: 4,
+};
+
+function getParams() {
+  return {
+    L: state.L, bladeH: state.bladeH, bladeD: state.bladeD, gap: state.gap, align: state.align,
+    autoBacker: state.autoBacker, backerThreshold: state.backerThreshold, backerManual: state.backerManual,
+    code: state.code,
+  };
+}
+
+// 依格柵寬度計算背檔數量: 每超過門檻(預設1000mm)就自動多一支
+function calcBackerCount(W, p) {
+  if (p.autoBacker) {
+    const th = p.backerThreshold > 0 ? p.backerThreshold : 1000;
+    return Math.max(Math.ceil(W / th) - 1, 0);
+  }
+  return Math.max(Math.round(p.backerManual || 0), 0);
+}
+
+function renderFloorTable() {
+  const tbody = document.getElementById("floorTbody");
+  tbody.innerHTML = "";
+  state.floors.forEach((f, i) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td><input type="text" data-i="${i}" data-k="label" value="${f.label}" style="width:60px"></td>
+      <td class="wcol"><input type="number" data-i="${i}" data-k="W" value="${f.W}" style="width:80px"></td>
+      <td><button class="row-del" data-i="${i}" title="刪除樓層">×</button></td>`;
+    tbody.appendChild(tr);
   });
-  grid.innerHTML = html;
+  Array.prototype.slice.call(tbody.querySelectorAll("input")).forEach(inp => {
+    inp.addEventListener("input", (e) => {
+      const i = +e.target.dataset.i, k = e.target.dataset.k;
+      state.floors[i][k] = k === "W" ? (parseFloat(e.target.value) || 0) : e.target.value;
+      renderAll();
+    });
+  });
+  Array.prototype.slice.call(tbody.querySelectorAll(".row-del")).forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      const i = +e.target.dataset.i;
+      if (state.floors.length <= 1) return;
+      state.floors.splice(i, 1);
+      if (state.activeFloor >= state.floors.length) state.activeFloor = state.floors.length - 1;
+      renderFloorTable(); renderAll();
+    });
+  });
 }
 
-render();
+function renderFloorTabs() {
+  const wrap = document.getElementById("floorTabs");
+  wrap.innerHTML = "";
+  state.floors.forEach((f, i) => {
+    const btn = document.createElement("button");
+    btn.textContent = `${f.label} · ${f.W}mm`;
+    if (i === state.activeFloor) btn.classList.add("active");
+    btn.addEventListener("click", () => { state.activeFloor = i; renderAll(); });
+    wrap.appendChild(btn);
+  });
+}
+
+function renderPreview() {
+  const floor = state.floors[state.activeFloor];
+  if (!floor) return;
+  const p = getParams();
+  const scene = buildGrilleScene(p, floor);
+  document.getElementById("svgHost").innerHTML = renderSVG(scene);
+
+  const L = scene.layout;
+  const backerN = calcBackerCount(floor.W, p);
+  document.getElementById("statRow").innerHTML = `
+    <div class="stat">百葉片數<b>${L.n}</b></div>
+    <div class="stat">實際使用高度<b>${L.used.toFixed(0)} mm</b></div>
+    <div class="stat">頂部收邊<b>${L.marginTop.toFixed(0)} mm</b></div>
+    <div class="stat">底部收邊<b>${L.marginBottom.toFixed(0)} mm</b></div>
+    <div class="stat">背檔數<b>${backerN} 支</b></div>
+    <div class="stat">寬度 W<b>${floor.W.toFixed(0)} mm</b></div>
+  `;
+}
+
+function renderResultsTable() {
+  const tbody = document.getElementById("resultsTbody");
+  tbody.innerHTML = "";
+  const p = getParams();
+  state.floors.forEach(f => {
+    const L = computeLayout(p.L, p.bladeH, p.gap, p.align);
+    const backerN = calcBackerCount(f.W, p);
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td class="mono">${f.label}</td><td>${f.W.toFixed(0)}</td><td>${L.n}</td>
+      <td>${p.bladeH.toFixed(0)}</td><td>${p.gap.toFixed(0)}</td>
+      <td>${L.marginTop.toFixed(0)}</td><td>${L.marginBottom.toFixed(0)}</td><td>${backerN}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+function renderAll() {
+  renderFloorTabs();
+  renderPreview();
+  renderResultsTable();
+}
+
+function downloadBlob(content, filename, mime) {
+  const blob = new Blob([content], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function safeFileName(s){ return toDxfSafe(s).replace(/\s+/g,"_") || "grille"; }
+
+document.getElementById("addFloorBtn").addEventListener("click", () => {
+  const n = state.floors.length + 1;
+  state.floors.push({ label: `F${n}`, W: 3800 });
+  renderFloorTable(); renderAll();
+});
+
+document.getElementById("projectName").addEventListener("input", (e) => {
+  state.project = e.target.value;
+});
+document.getElementById("projectCode").addEventListener("input", (e) => {
+  state.code = e.target.value;
+  renderAll();
+});
+
+["paramL","paramBladeH","paramBladeD","paramGap","backerThreshold","backerManual"].forEach(id => {
+  document.getElementById(id).addEventListener("input", (e) => {
+    const map = { paramL:"L", paramBladeH:"bladeH", paramBladeD:"bladeD", paramGap:"gap",
+                  backerThreshold:"backerThreshold", backerManual:"backerManual" };
+    state[map[id]] = parseFloat(e.target.value) || 0;
+    renderAll();
+  });
+});
+
+document.getElementById("autoBacker").addEventListener("change", (e) => {
+  state.autoBacker = e.target.checked;
+  document.getElementById("backerThreshold").disabled = !e.target.checked;
+  document.getElementById("backerManual").disabled = e.target.checked;
+  renderAll();
+});
+document.getElementById("backerManual").disabled = state.autoBacker;
+
+Array.prototype.slice.call(document.querySelectorAll('input[name="align"]')).forEach(r => {
+  r.addEventListener("change", (e) => {
+    state.align = e.target.value;
+    Array.prototype.slice.call(document.querySelectorAll("#alignRow label")).forEach(l => l.classList.remove("active"));
+    e.target.closest("label").classList.add("active");
+    renderAll();
+  });
+});
+document.querySelector('#alignRow label').classList.add("active");
+
+document.getElementById("downloadOneBtn").addEventListener("click", () => {
+  const floor = state.floors[state.activeFloor];
+  try {
+    const scene = buildGrilleScene(getParams(), floor);
+    const dxf = sceneToDxf(scene);
+    downloadBlob(dxf, `${safeFileName(state.project)}_${safeFileName(floor.label)}.dxf`, "application/dxf");
+  } catch (err) {
+    alert("匯出失敗: " + err.message);
+  }
+});
+
+document.getElementById("downloadAllBtn").addEventListener("click", function () {
+  try {
+    const zip = new JSZip();
+    const p = getParams();
+    state.floors.forEach(floor => {
+      const scene = buildGrilleScene(p, floor);
+      const dxf = sceneToDxf(scene);
+      zip.file(`${safeFileName(state.project)}_${safeFileName(floor.label)}.dxf`, dxf);
+    });
+    zip.generateAsync({ type: "blob" }).then(blob => {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = `${safeFileName(state.project)}_all_floors.zip`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }).catch(err => {
+      alert("匯出失敗: " + err.message);
+    });
+  } catch (err) {
+    alert("匯出失敗: " + err.message);
+  }
+});
+
+renderFloorTable();
+renderAll();
 </script>
 </body>
 </html>

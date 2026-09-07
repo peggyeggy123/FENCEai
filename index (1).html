@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>格柵放樣台</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+TC:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --blueprint:#0F2540;
+    --blueprint-2:#173A5C;
+    --paper:#F7F5EF;
+    --paper-line:#D9D3C4;
+    --linework:#E8F1FF;
+    --accent:#D9622B;
+    --accent-dim:#B24F22;
+    --ink:#16212B;
+    --ink-soft:#5B6975;
+    --metal:#9AA6AF;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--paper);color:var(--ink);
+    font-family:'IBM Plex Sans TC',system-ui,sans-serif;}
+  .mono{font-family:'IBM Plex Mono',ui-monospace,monospace;}
+
+  header{
+    background:var(--blueprint);color:var(--linework);
+    padding:36px 28px 32px;
+    border-bottom:3px solid var(--accent);
+  }
+  header h1{margin:0;font-size:1.9rem;font-weight:700;letter-spacing:.02em;}
+  header p{margin:8px 0 0;font-size:.92rem;color:#9FB6CE;max-width:560px;line-height:1.6;}
+
+  main{max-width:1080px;margin:0 auto;padding:36px 28px 60px;}
+
+  h2.section-title{
+    font-size:.95rem;font-weight:600;margin:0 0 16px;
+    color:var(--blueprint);text-transform:none;
+  }
+
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(260px, 1fr));
+    margin:0 0 40px;
+  }
+  .card{
+    position:relative;
+    border:1px solid var(--paper-line);
+    background:#FBFAF6;
+    padding:22px 20px 20px;
+    margin:0 16px 16px 0;
+    border-radius:2px;
+    display:flex;flex-direction:column;
+    min-height:190px;
+    transition:border-color .15s ease;
+  }
+  .card.active{cursor:pointer;}
+  .card.active:hover{border-color:var(--accent);}
+  .card.disabled{opacity:.55;}
+
+  .card .icon{
+    width:44px;height:44px;margin-bottom:14px;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .card h3{margin:0 0 6px;font-size:1.1rem;font-weight:600;color:var(--ink);}
+  .card p{margin:0;font-size:.82rem;color:var(--ink-soft);line-height:1.6;flex-grow:1;}
+  .card .tag{
+    display:inline-block;font-size:.68rem;color:var(--accent);
+    border:1px solid var(--accent);border-radius:2px;
+    padding:2px 8px;margin-bottom:10px;align-self:flex-start;
+    font-family:'IBM Plex Mono',monospace;
+  }
+  .card .tag.soon{color:var(--ink-soft);border-color:var(--paper-line);}
+  .card .open-link{
+    margin-top:14px;font-size:.82rem;font-weight:600;color:var(--blueprint);
+    text-decoration:none;
+  }
+  .card.active:hover .open-link{color:var(--accent);}
+  .card a.card-link{position:absolute;inset:0;}
+
+  .note-box{
+    border:1px dashed var(--paper-line);border-radius:2px;
+    padding:16px 18px;font-size:.8rem;color:var(--ink-soft);line-height:1.7;
+    background:#FBFAF6;
+  }
+  .note-box b{color:var(--ink);}
+  .note-box code{
+    background:#EFEBE0;padding:1px 6px;border-radius:2px;
+    font-family:'IBM Plex Mono',monospace;font-size:.78rem;color:var(--blueprint);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>格柵放樣台</h1>
+  <p>依格柵類型選擇對應工具,調整參數即時預覽,下載可直接開啟於 AutoCAD 的 DXF 圖檔。</p>
+</header>
+
+<main>
+  <h2 class="section-title">選擇格柵類型</h2>
+  <div class="grid" id="toolGrid"></div>
+
+  <h2 class="section-title">關於這個總頁面</h2>
+  <div class="note-box">
+    每種格柵類型(一字型、冷氣、L型…)因為參數邏輯不同,各自用獨立頁面維護,避免互相干擾。<br><br>
+    <b>之後新增新類型時</b>:先建好那個類型的工具頁面(例如 <code>冷氣格柵.html</code>),
+    再回來這個檔案裡的 <code>TOOLS</code> 清單加一筆資料,卡片就會自動顯示出來,不需要更動其他地方。
+  </div>
+</main>
+
+<script>
+// ============================================================
+// 工具清單: 之後新增格柵類型時,只要在這裡多加一筆資料就好
+// status: "active" = 已完成可以點進去用 / "soon" = 尚未建立,顯示為預告卡片
+// ============================================================
+const TOOLS = [
+  {
+    name: "一字型格柵",
+    file: "一字型格柵.html",
+    desc: "直線型鋁擠型百葉格柵,支援自動背檔(依寬度超過門檻自動加支撐)、頂/底/置中對齊。",
+    status: "active",
+  },
+  {
+    name: "ㄇ字型格柵",
+    file: "ㄇ字型格柵.html",
+    desc: "三面U型框格柵,尚未建立。",
+    status: "soon",
+  },
+  {
+    name: "L型格柵",
+    file: "L型格柵.html",
+    desc: "轉角L型格柵,尚未建立。",
+    status: "soon",
+  },
+];
+
+function iconSvg() {
+  // 簡單的百葉線條icon,呼應blueprint風格
+  return `<svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="2" y="2" width="40" height="40" stroke="#9AA6AF" stroke-width="1.4"/>
+    <line x1="6" y1="12" x2="38" y2="12" stroke="#0F2540" stroke-width="2.4"/>
+    <line x1="6" y1="19" x2="38" y2="19" stroke="#0F2540" stroke-width="2.4"/>
+    <line x1="6" y1="26" x2="38" y2="26" stroke="#0F2540" stroke-width="2.4"/>
+    <line x1="6" y1="33" x2="38" y2="33" stroke="#0F2540" stroke-width="2.4"/>
+  </svg>`;
+}
+
+function render() {
+  const grid = document.getElementById("toolGrid");
+  let html = "";
+  TOOLS.forEach(t => {
+    const isActive = t.status === "active";
+    html += `<div class="card ${isActive ? "active" : "disabled"}">`;
+    if (isActive) html += `<a class="card-link" href="${t.file}" aria-label="開啟${t.name}"></a>`;
+    html += `<span class="tag ${isActive ? "" : "soon"}">${isActive ? "可使用" : "尚未建立"}</span>`;
+    html += `<div class="icon">${iconSvg()}</div>`;
+    html += `<h3>${t.name}</h3>`;
+    html += `<p>${t.desc}</p>`;
+    if (isActive) html += `<span class="open-link">開啟工具 &rarr;</span>`;
+    html += `</div>`;
+  });
+  grid.innerHTML = html;
+}
+
+render();
+</script>
+</body>
+</html>
